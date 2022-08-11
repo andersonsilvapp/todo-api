@@ -18,7 +18,7 @@ function checksExistsUserAccount(request, response, next) {
   )
 
   if (!user) {
-    return response.status(400).json({ erro: "User not found!"})
+    return response.status(404).json({ erro: "User not found!"})
   }
 
   request.user = user
@@ -28,6 +28,12 @@ function checksExistsUserAccount(request, response, next) {
 
 app.post('/users', (request, response) => {
   const { name, username } = request.body
+
+  const userNameExists = users.some((user) => user.username === username)
+
+  if (userNameExists) {
+    return response.status(400).json({ error: 'username already exists'})
+  }
 
   const newUser = {
     id: uuidv4(),
@@ -62,7 +68,7 @@ app.post('/todos', checksExistsUserAccount, (request, response) => {
 
   user.todos.push(newTodo)
 
-  return response.json(newTodo)
+  return response.status(201).json(newTodo)
 });
 
 app.put('/todos/:id', checksExistsUserAccount, (request, response) => {
@@ -76,19 +82,22 @@ app.put('/todos/:id', checksExistsUserAccount, (request, response) => {
 
   if (!todoExists) return response.status(404).json({ error: "todo not found"})
 
+  let updatedTodo = {}
+
   user.todos = user.todos.map((todo) => {
     if(todo.id === id) {
-      return {
+      updatedTodo = {
         ...todo,
         title,
         deadline: new Date(deadline)
       }
+      return updatedTodo
     } else {
       return todo
     }
   })
 
-  return response.send()
+  return response.json(updatedTodo)
 });
 
 app.patch('/todos/:id/done', checksExistsUserAccount, (request, response) => {
@@ -100,16 +109,19 @@ app.patch('/todos/:id/done', checksExistsUserAccount, (request, response) => {
 
   if (!todoExists) return response.status(404).json({ error: "todo not found"})
 
+  let updatedTodo = {}
+
   user.todos = user.todos.map((todo) => {
     if (todo.id === id) {
-      return {
+      updatedTodo = {
         ...todo,
-        done: true,
+        done: true
       }
+      return updatedTodo
     }
   })
 
-  return response.send()
+  return response.json(updatedTodo)
 });
 
 app.delete('/todos/:id', checksExistsUserAccount, (request, response) => {
@@ -123,7 +135,7 @@ app.delete('/todos/:id', checksExistsUserAccount, (request, response) => {
 
   user.todos = user.todos.filter((todo) => todo.id !== id)
 
-  return response.status(200).json(user.todos)
+  return response.status(204).json(user.todos)
 });
 
 module.exports = app;
